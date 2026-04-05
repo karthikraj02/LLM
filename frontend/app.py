@@ -1,11 +1,13 @@
 import streamlit as st
 
-# Title
-st.title("Welcome to My Streamlit App")
+# Chat UI
+st.title('Chat with LLM')
 
-# Input box
-user_input = st.text_input("Type something:")
+# User input
+user_input = st.text_input('You:', '')
 
-# Display the input text
-if user_input:
-    st.write(f"You typed: {user_input}")
+if st.button('Send'):
+    # Placeholder for model response
+    st.text(f'LLM: {user_input}')
+
+# Additional UI components as necessary
