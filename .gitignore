@@ -1,0 +1,58 @@
+# Virtual Environment
+venv/
+env/
+.venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Model Checkpoints & Weights
+checkpoints/
+*.pt
+*.pth
+*.bin
+*.h5
+*.ckpt
+model_weights/
+
+# Data & Datasets
+datasets/
+data/*.csv
+data/*.json
+data/*.pkl
+data/*.parquet
+
+# IDE Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# Logs & Temp
+*.log
+*.tmp
+logs/
+
+# Frontend & Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+build/
+dist/
+
+# Generic Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+*.obj

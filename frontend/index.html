@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom LLM Chat</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">✨</div>
+                <h2>Custom LLM</h2>
+            </div>
+            
+            <div class="settings">
+                <h3>Settings</h3>
+                
+                <div class="setting-item">
+                    <label for="temp-slider">Temperature: <span id="temp-val">0.8</span></label>
+                    <input type="range" id="temp-slider" min="0.1" max="2.0" step="0.1" value="0.8">
+                </div>
+                
+                <div class="setting-item">
+                    <label for="tokens-slider">Max Tokens: <span id="tokens-val">100</span></label>
+                    <input type="range" id="tokens-slider" min="10" max="500" step="10" value="100">
+                </div>
+                
+                <div class="setting-item">
+                    <label for="topk-slider">Top K: <span id="topk-val">40</span></label>
+                    <input type="range" id="topk-slider" min="1" max="100" step="1" value="40">
+                </div>
+                
+                <div class="setting-item">
+                    <label for="topp-slider">Top P: <span id="topp-val">0.9</span></label>
+                    <input type="range" id="topp-slider" min="0.1" max="1.0" step="0.05" value="0.9">
+                </div>
+            </div>
+        </aside>
+        
+        <main class="chat-container">
+            <div class="chat-history" id="chat-history">
+                <div class="message system-message">
+                    <div class="avatar">✨</div>
+                    <div class="content">
+                        <p>Welcome! I am a custom Language Model built from scratch. How can I help you today?</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <textarea id="prompt-input" placeholder="Type a message..." rows="1"></textarea>
+                    <button id="send-btn" title="Send message">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

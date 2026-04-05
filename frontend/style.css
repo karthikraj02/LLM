@@ -1,0 +1,225 @@
+:root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --message-user: #1e3a8a;
+    --message-bot: #334155;
+    --border: #334155;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app-container {
+    display: flex;
+    height: 100%;
+}
+
+.sidebar {
+    width: 280px;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.logo-icon {
+    font-size: 1.5rem;
+}
+
+.settings h3 {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.setting-item {
+    margin-bottom: 1.25rem;
+}
+
+.setting-item label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+}
+
+.chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.chat-history {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.message {
+    display: flex;
+    gap: 1rem;
+    max-width: 80%;
+}
+
+.message.user-message {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--accent);
+    flex-shrink: 0;
+}
+
+.user-message .avatar {
+    background-color: #64748b;
+}
+
+.system-message .avatar {
+    background-color: #10b981;
+}
+
+.content {
+    background-color: var(--message-bot);
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.user-message .content {
+    background-color: var(--message-user);
+    border-bottom-right-radius: 0;
+}
+
+.bot-message .content, .system-message .content {
+    border-bottom-left-radius: 0;
+}
+
+.input-area {
+    padding: 1.5rem 2rem;
+    background-color: var(--bg-primary);
+    border-top: 1px solid var(--border);
+}
+
+.input-wrapper {
+    display: flex;
+    gap: 1rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    align-items: flex-end;
+    transition: border-color 0.2s;
+}
+
+.input-wrapper:focus-within {
+    border-color: var(--accent);
+}
+
+textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 1rem;
+    resize: none;
+    outline: none;
+    max-height: 150px;
+}
+
+textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+button {
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+    background-color: var(--accent-hover);
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+button:disabled {
+    background-color: var(--border);
+    cursor: not-allowed;
+    transform: none;
+}
+
+.typing-indicator {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.5rem;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--text-secondary);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}

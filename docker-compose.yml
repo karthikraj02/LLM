@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  llm-api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+    # Uncomment to enable GPU if host supports nvidia-docker
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
