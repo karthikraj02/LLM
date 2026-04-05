@@ -1,100 +1,116 @@
 import os
-import math
-import time
-import argparse
 import torch
-from torch.optim import AdamW
+import argparse
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    TrainingArguments,
+)
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+from trl import SFTTrainer
+from datasets import load_dataset
 
-import sys
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(base_dir)
-
-from model.config import ModelArgs
-from model.transformer import TransformerLM
-from data.dataset import get_batch
-from training.evaluate import estimate_loss
-
-def train(max_iters=5000, batch_size=8, learning_rate=3e-4):
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+def train(model_id, data_path, output_dir, max_iters, batch_size, learning_rate):
+    print(f"Loading tokenizer and model: {model_id}...")
     
-    eval_interval = 250
-    eval_iters = 100
-    warmup_iters = 100
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer.pad_token = tokenizer.eos_token
     
-    print(f"Initializing model on {device}...")
+    # Setup QLoRA (4-bit quantization) for consumer GPUs
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_use_double_quant=True,
+    )
     
-    config = ModelArgs()
-    # If tuning for specific memory/speed, alter config here
-    # config.n_layers = 4
-    # config.n_heads = 4
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        quantization_config=bnb_config,
+        device_map="auto",
+        trust_remote_code=True
+    )
+    model.config.use_cache = False
     
-    model = TransformerLM(config)
-    model.to(device)
+    # Prepare Model for LoRA
+    model = prepare_model_for_kbit_training(model)
+    peft_config = LoraConfig(
+        r=16,
+        lora_alpha=32,
+        lora_dropout=0.05,
+        bias="none",
+        task_type="CAUSAL_LM",
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    )
+    model = get_peft_model(model, peft_config)
+    print(f"Trainable Parameters for LoRA:")
+    model.print_trainable_parameters()
     
-    print(f"Model parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)/1e6:.2f} M")
+    # Load Dataset
+    try:
+        dataset = load_dataset("json", data_files={"train": data_path})["train"]
+    except:
+        print("Data load failed, falling back to timdettmers/openassistant-guanaco")
+        dataset = load_dataset("timdettmers/openassistant-guanaco", split="train")
     
-    optimizer = AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-1)
+    # Define Training Arguments
+    training_args = TrainingArguments(
+        output_dir=output_dir,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=4,
+        optim="paged_adamw_32bit",
+        save_steps=200,
+        logging_steps=10,
+        learning_rate=learning_rate,
+        weight_decay=0.001,
+        fp16=False,
+        bf16=True, 
+        max_grad_norm=0.3,
+        max_steps=max_iters,
+        warmup_ratio=0.03,
+        lr_scheduler_type="cosine",
+        report_to="none"
+    )
     
-    # Cosine scheduler with warmup
-    def lr_lambda(current_step: int):
-        if current_step < warmup_iters:
-            return float(current_step) / float(max(1, warmup_iters))
-        progress = float(current_step - warmup_iters) / float(max(1, max_iters - warmup_iters))
-        return 0.5 * (1.0 + math.cos(math.pi * progress))
-        
-    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    # Initialize Supervised Fine-Tuning Trainer (TRL)
+    trainer = SFTTrainer(
+        model=model,
+        train_dataset=dataset,
+        peft_config=peft_config,
+        dataset_text_field="text",
+        max_seq_length=2048,
+        tokenizer=tokenizer,
+        args=training_args,
+    )
     
-    print(f"Starting training loop for {max_iters} iterations...")
-    best_val_loss = float('inf')
+    print("Starting QLoRA Fine-tuning...")
+    trainer.train()
     
-    t0 = time.time()
-    for iter_num in range(max_iters):
-        
-        # Evaluate loss on train/val sets occasionally and save checkpoint
-        if iter_num % eval_interval == 0 or iter_num == max_iters - 1:
-            losses = estimate_loss(model, eval_iters, config.max_seq_len, batch_size, device)
-            print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['valid']:.4f}")
-            
-            if losses['valid'] < best_val_loss:
-                best_val_loss = losses['valid']
-                os.makedirs(os.path.join(base_dir, "checkpoints"), exist_ok=True)
-                ckpt_path = os.path.join(base_dir, "checkpoints", "model.pt")
-                torch.save(model.state_dict(), ckpt_path)
-                print(f"Saved checkpoint to {ckpt_path}")
-                
-        # Get batch
-        X, Y = get_batch('train', config.max_seq_len, batch_size, device)
-        
-        # Forward pass
-        if device == 'cuda':
-            with torch.amp.autocast(device_type='cuda', dtype=torch.float16):
-                logits, loss = model(X, Y)
-        else:
-            logits, loss = model(X, Y)
-            
-        # Backward pass
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        
-        # Gradient clipping
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        
-        optimizer.step()
-        scheduler.step()
-        
-        if iter_num % 100 == 0:
-            t1 = time.time()
-            dt = t1 - t0
-            t0 = t1
-            print(f"iter {iter_num}: loss {loss.item():.4f}, dt {dt*1000:.2f}ms, lr {scheduler.get_last_lr()[0]:.2e}")
-
-    print("Training Complete!")
+    print(f"Saving fine-tuned model adapters to {output_dir}...")
+    trainer.model.save_pretrained(output_dir)
+    tokenizer.save_pretrained(output_dir)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Train custom LLM")
-    parser.add_argument("--iters", type=int, default=5000)
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--lr", type=float, default=3e-4)
+    parser = argparse.ArgumentParser(description="QLoRA Fine-Tune Open Source LLM")
+    parser.add_argument("--model_id", type=str, default="meta-llama/Meta-Llama-3-8B-Instruct")
+    parser.add_argument("--data_path", type=str, default="data/dataset.jsonl")
+    parser.add_argument("--output_dir", type=str, default="./lora-adapters")
+    parser.add_argument("--iters", type=int, default=500)
+    parser.add_argument("--batch_size", type=int, default=2)
+    parser.add_argument("--lr", type=float, default=2e-4)
+    # Ignored args to be compatible with run.py
+    parser.add_argument("--mixed_precision", type=str, default="bf16")
+    parser.add_argument("--gradient_accumulation", type=int, default=4)
+    parser.add_argument("--use_deepspeed", type=str, default="False")
+    
     args = parser.parse_args()
     
-    train(max_iters=args.iters, batch_size=args.batch_size, learning_rate=args.lr)
+    train(
+        model_id=args.model_id,
+        data_path=args.data_path,
+        output_dir=args.output_dir,
+        max_iters=args.iters,
+        batch_size=args.batch_size,
+        learning_rate=args.lr
+    )
