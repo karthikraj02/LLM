@@ -1,8 +1,11 @@
-FROM python:3.11-slim
+FROM pytorch/pytorch:2.1.2-cuda12.1-cudnn8-devel
 
 WORKDIR /app
 
-# Install dependencies first for caching
+# Install system dependencies
+RUN apt-get update && apt-get install -y git build-essential && rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies first for caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -12,5 +15,5 @@ COPY . .
 # Expose API port
 EXPOSE 8000
 
-# Run API server
+# Run API server using vLLM
 CMD ["python", "api/server.py"]
