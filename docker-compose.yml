@@ -8,11 +8,13 @@ services:
     volumes:
       - ./data:/app/data
       - ./checkpoints:/app/checkpoints
-    # Uncomment to enable GPU if host supports nvidia-docker
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+      - ./lora-adapters:/app/lora-adapters
+    # Enable GPU for vLLM and Training
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    shm_size: '16gb' # Required for vLLM / PyTorch multi-processing
