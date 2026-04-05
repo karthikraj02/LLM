@@ -2,3 +2,12 @@ torch
 fastapi
 uvicorn
 pydantic
+transformers
+peft
+trl
+bitsandbytes
+accelerate
+datasets
+vllm
+deepspeed
+flash-attn
